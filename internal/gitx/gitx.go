@@ -19,9 +19,11 @@ func Git(dir string, args ...string) (string, error) {
 func gitEnv(dir string, extraEnv []string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
-	if len(extraEnv) > 0 {
-		cmd.Env = append(os.Environ(), extraEnv...)
-	}
+	// LC_ALL=C forces untranslated git output: callers match on message
+	// text (lease refusals, rebase conflicts), which a localized git
+	// (LANG=it_IT, …) would otherwise translate out from under them.
+	cmd.Env = append(os.Environ(), "LC_ALL=C")
+	cmd.Env = append(cmd.Env, extraEnv...)
 	var out, errb bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errb

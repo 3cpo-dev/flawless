@@ -204,15 +204,26 @@ func stepPush(c *Context) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	c.Run.FinalSHA = sha
 	expected := c.BaseRemoteSHA
-	if expected == "" {
-		// sync was skipped; fall back to the remote-tracking ref.
+	if expected == "" && c.Skip["sync"] {
+		// BaseRemoteSHA is pinned by sync's fetch; when the user skipped
+		// sync, nothing verified the remote branch this run, so redo both
+		// halves of that safety here: fresh fetch + incorporation check.
+		// Without this, the lease would pin a possibly stale tracking ref
+		// and could overwrite a teammate's commits.
+		if err := gitx.Fetch(c.Worktree, c.Remote); err != nil {
+			return "", "", err
+		}
 		if cur, err := gitx.Git(c.Worktree, "rev-parse", "--verify", c.Remote+"/"+c.Branch); err == nil {
+			if !gitx.IsAncestor(c.Worktree, cur, sha) {
+				return "", "", fmt.Errorf("%s/%s has commits this run does not include; run: git pull --rebase %s %s, then re-run flawless",
+					c.Remote, c.Branch, c.Remote, c.Branch)
+			}
 			expected = cur
 		}
 	}
 	if expected == sha {
+		c.Run.FinalSHA = sha
 		return "skipped", "remote already at " + sha[:10], nil
 	}
 	if err := gitx.Push(c.Worktree, c.Remote, c.Branch, sha, expected); err != nil {
@@ -221,6 +232,8 @@ func stepPush(c *Context) (string, string, error) {
 		}
 		return "", "", err
 	}
+	// Only now did the SHA actually land on the remote.
+	c.Run.FinalSHA = sha
 	syncLocalBranch(c, sha)
 	return "ok", fmt.Sprintf("pushed %s to %s/%s", sha[:10], c.Remote, c.Branch), nil
 }

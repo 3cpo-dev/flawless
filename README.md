@@ -48,9 +48,9 @@ Useful flags: `--intent "what this change should do"`, `--yes`
 -f`), `--skip review,lint`, `--json` (machine-readable events for
 coding agents).
 
-Team mode: `flawless guard on` makes the gate mandatory — a pre-push
-hook refuses direct `git push` to the gated remote, so the only way a
-branch ships is through flawless (`flawless guard off` removes it,
+Team mode: `flawless guard on` makes the gate mandatory on this clone —
+a pre-push hook refuses direct `git push` to the gated remote, so
+branches ship through flawless (`flawless guard off` removes it,
 `FLAWLESS_BYPASS=1 git push …` is the explicit emergency exit).
 
 Check your environment with `flawless doctor`. Optionally write a fully
@@ -91,10 +91,14 @@ State is plain JSON in `.git/flawless/runs/` — `flawless status`,
 also just `cat`.
 
 **Is the gate mandatory?** By default, no — `flawless` is a command, so
-you *could* still `git push origin` around it. Solo, that freedom is a
-feature. For teams, `flawless guard on` installs a pre-push hook that
-refuses direct pushes to the gated remote (flawless's validated pushes
-pass; `FLAWLESS_BYPASS=1 git push …` is the visible emergency exit).
+you *could* still `git push origin` around it. For solo work, that
+freedom is a feature. For teams, `flawless guard on` installs a
+pre-push hook that refuses direct pushes to the gated remote
+(flawless's validated pushes pass; `FLAWLESS_BYPASS=1 git push …` is
+the visible emergency exit). The hook is per-clone — git doesn't
+version hooks — so treat it as a seatbelt for each machine; team-wide
+enforcement belongs server-side (branch protection, required checks),
+which the guard complements rather than replaces.
 
 ## Design
 

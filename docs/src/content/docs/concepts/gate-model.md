@@ -91,6 +91,13 @@ The guard is one shell script in `.git/hooks/pre-push` (it refuses to
 touch a pre-push hook it didn't write). Still no daemon — the
 enforcement is a file, and you can read it.
 
+Be equally clear-eyed about the guard's reach: **it is per-clone**. Git
+does not version hooks, so a teammate's fresh clone has no guard until
+they run `flawless guard on` themselves, and nothing stops someone from
+deleting the hook on their own machine. Truly team-wide enforcement is
+server-side — branch protection and required status checks on your git
+host. The guard complements those; it does not replace them.
+
 ## What about "non-blocking pushes"?
 
 The daemon design exists so `git push` returns instantly while validation

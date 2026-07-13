@@ -39,7 +39,10 @@ Makes the gate mandatory for this repo via a `pre-push` hook.
 | `status` (default) | report whether the guard is installed |
 
 The hook is a plain shell script; `guard on`/`off` refuse to overwrite
-or delete a pre-push hook flawless does not own.
+or delete a pre-push hook flawless does not own. Note that hooks are
+per-clone: each teammate enables the guard on their own machine, and
+server-side branch protection remains the authoritative team-wide
+enforcement.
 
 ## `flawless status`
 
