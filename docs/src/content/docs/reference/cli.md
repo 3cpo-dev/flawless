@@ -28,6 +28,19 @@ Writes a fully commented `.flawless.yaml` in which every value is the
 default. Refuses to overwrite an existing file. flawless does **not**
 require init — this is documentation you can uncomment.
 
+## `flawless guard`
+
+Makes the gate mandatory for this repo via a `pre-push` hook.
+
+| Subcommand | Meaning |
+| --- | --- |
+| `on` | install the hook: direct `git push` to the gated remote is refused (flawless's own pushes pass; `FLAWLESS_BYPASS=1 git push …` bypasses once) |
+| `off` | remove the hook |
+| `status` (default) | report whether the guard is installed |
+
+The hook is a plain shell script; `guard on`/`off` refuse to overwrite
+or delete a pre-push hook flawless does not own.
+
 ## `flawless status`
 
 Shows the latest run: branch, status, PR URL, and each step's outcome

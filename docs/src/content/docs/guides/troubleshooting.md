@@ -44,11 +44,27 @@ commands:
   test: ./scripts/test.sh
 ```
 
-## The push was rejected (`force-with-lease`)
+## "origin/branch has commits your local branch does not include"
 
-Someone pushed to your branch after your run fetched. This is the
-data-loss protection working. `git fetch origin`, look at what landed,
-rebase onto it, re-run.
+The remote branch is ahead of your local one (a teammate pushed, or a
+previous flawless run added fix commits you haven't pulled). Pushing
+would discard those commits, so the run stops at `sync`:
+
+```sh
+git pull --rebase origin <your-branch>
+flawless
+```
+
+## "the remote branch moved during the run"
+
+Someone pushed to your branch *while* the pipeline was running. The
+lease refused the push — nothing was overwritten. Fetch, rebase, re-run.
+
+## "flawless guard: direct pushes are gated"
+
+The repo has `flawless guard on`. Ship with `flawless`; in a genuine
+emergency, `FLAWLESS_BYPASS=1 git push …`; disable with
+`flawless guard off`.
 
 ## `pr` / `ci` steps are skipped
 

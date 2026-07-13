@@ -82,6 +82,12 @@ State is plain JSON in `.git/flawless/runs/` — `flawless status`,
 `flawless runs` and `flawless logs` are thin readers over files you can
 also just `cat`.
 
+**Is the gate mandatory?** By default, no — `flawless` is a command, so
+you *could* still `git push origin` around it. Solo, that freedom is a
+feature. For teams, `flawless guard on` installs a pre-push hook that
+refuses direct pushes to the gated remote (flawless's validated pushes
+pass; `FLAWLESS_BYPASS=1 git push …` is the visible emergency exit).
+
 ## Design
 
 flawless is a deliberate simplification of the daemon-based push-gate

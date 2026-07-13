@@ -34,6 +34,11 @@ type Context struct {
 	Run      *run.Run
 	Skip     map[string]bool // step names to skip, from --skip
 	Yes      bool            // non-interactive: fix what's fixable, fail otherwise
+
+	// BaseRemoteSHA is where <remote>/<branch> was when sync observed it.
+	// The push step demands the remote still be exactly there (lease), so
+	// commits the run did not incorporate are never overwritten.
+	BaseRemoteSHA string
 }
 
 // Upstream returns the remote-tracking ref of the target branch.

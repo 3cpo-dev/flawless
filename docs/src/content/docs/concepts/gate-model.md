@@ -60,6 +60,36 @@ pipeline itself*:
    flawless fast-forwards your branch only when that is a pure
    fast-forward on a clean tree; otherwise it prints the `git pull
    --rebase` command and leaves the decision to you.
+4. **A teammate's commits can never be overwritten.** At `sync`, the run
+   pins the remote branch's exact SHA and verifies your local work
+   already contains it (if not, the run fails with "pull first"). The
+   final push demands the remote *still* be at that pinned SHA — if
+   anyone pushed during the run, git refuses the push and flawless tells
+   you to fetch, rebase and re-run.
+
+## Enforcement: voluntary by default, structural on request
+
+Be clear-eyed about one trade-off: because the trigger is a command, not
+a hijacked `git push`, nothing physically stops you from running
+`git push origin` and skipping the gate. For a solo developer that
+freedom is a feature. For a team that wants the gate to be *the* path:
+
+```sh
+flawless guard on
+```
+
+This installs a `pre-push` hook that refuses direct pushes to the gated
+remote. Flawless's own validated pushes pass through; everything else is
+told to use the gate — with an explicit escape hatch for emergencies:
+
+```sh
+FLAWLESS_BYPASS=1 git push origin my-branch   # deliberate, visible, greppable
+flawless guard off                            # remove the hook entirely
+```
+
+The guard is one shell script in `.git/hooks/pre-push` (it refuses to
+touch a pre-push hook it didn't write). Still no daemon — the
+enforcement is a file, and you can read it.
 
 ## What about "non-blocking pushes"?
 

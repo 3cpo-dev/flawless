@@ -156,3 +156,39 @@ func TestExecuteSkipFlag(t *testing.T) {
 		}
 	}
 }
+
+func TestSyncFailsWhenBehindRemote(t *testing.T) {
+	c, work, bare, out := setup(t)
+	// Publish feature, then a teammate adds a commit we don't have.
+	sha, _ := gitx.HeadSHA(work)
+	if err := gitx.Push(work, "origin", "feature", sha, ""); err != nil {
+		t.Fatal(err)
+	}
+	mate := t.TempDir()
+	if _, err := gitx.Git(mate, "clone", "--quiet", bare, "."); err != nil {
+		t.Fatal(err)
+	}
+	gitx.Git(mate, "config", "user.email", "m@m")
+	gitx.Git(mate, "config", "user.name", "m")
+	if _, err := gitx.Git(mate, "checkout", "feature"); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(mate, "mate.txt"), []byte("their work\n"), 0o644)
+	if _, err := gitx.CommitAll(mate, "teammate work"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := gitx.Git(mate, "push", "origin", "feature"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := Execute(c)
+	if err == nil {
+		t.Fatalf("run must fail when the remote branch is ahead, output:\n%s", out.String())
+	}
+	if !strings.Contains(err.Error(), "does not include") {
+		t.Errorf("expected the behind-remote message, got: %v", err)
+	}
+	if c.Run.FinalSHA != "" {
+		t.Error("nothing must be pushed when local is behind the remote branch")
+	}
+}

@@ -64,6 +64,7 @@ flawless --detach             # run in the background…
 flawless logs -f              # …and follow it
 flawless --skip review,lint   # skip steps this once
 flawless status               # what happened in the last run
+flawless guard on             # team mode: refuse direct 'git push' around the gate
 ```
 
 ## 5. Optional: write a config

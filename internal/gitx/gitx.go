@@ -6,14 +6,22 @@ package gitx
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
 
 // Git runs git with args in dir and returns trimmed stdout.
 func Git(dir string, args ...string) (string, error) {
+	return gitEnv(dir, nil, args...)
+}
+
+func gitEnv(dir string, extraEnv []string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
+	if len(extraEnv) > 0 {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
 	var out, errb bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errb
@@ -134,14 +142,18 @@ func CommitAll(dir, msg string) (bool, error) {
 	return err == nil, err
 }
 
-// Push pushes sha to remote branch. force-with-lease protects commits on
-// the remote that this run never saw (e.g. a teammate pushed meanwhile).
-func Push(dir, remote, branch, sha string, forceWithLease bool) error {
-	args := []string{"push", remote, sha + ":refs/heads/" + branch}
-	if forceWithLease {
-		args = append(args, "--force-with-lease="+branch)
-	}
-	_, err := Git(dir, args...)
+// Push pushes sha to remote branch, requiring the remote ref to still be
+// exactly at expected ("" = the branch must not exist yet). This is
+// --force-with-lease with an explicit expectation rather than the
+// remote-tracking ref, so commits someone else pushed at any point the
+// run did not incorporate can never be overwritten — not even ones a
+// later fetch already made visible locally.
+//
+// FLAWLESS_INTERNAL=1 lets the push pass a `flawless guard` pre-push hook.
+func Push(dir, remote, branch, sha, expected string) error {
+	_, err := gitEnv(dir, []string{"FLAWLESS_INTERNAL=1"},
+		"push", remote, sha+":refs/heads/"+branch,
+		"--force-with-lease=refs/heads/"+branch+":"+expected)
 	return err
 }
 

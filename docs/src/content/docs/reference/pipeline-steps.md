@@ -8,9 +8,12 @@ interactive run or fail a non-interactive one.
 
 ## sync — always runs
 
-Fetches the remote, then rebases the worktree's HEAD onto
-`<remote>/<target>`.
+Fetches the remote, pins where `<remote>/<branch>` currently is (the
+push step will hold it to exactly that SHA), then rebases the worktree's
+HEAD onto `<remote>/<target>`.
 
+- The remote branch has commits your local branch doesn't include →
+  **failed** with "pull first" — pushing would have discarded them.
 - Target branch missing on the remote → **skipped** (first push of a new
   lineage).
 - Conflicts → rebase aborted, **failed** with instructions; your
@@ -48,9 +51,11 @@ committed as its own commit. No stale docs → step reports
 Pushes the validated worktree SHA to `<remote>/<branch>`.
 
 - Remote already at that SHA → **skipped**.
-- `--force-with-lease` is added **only** when the rebase rewrote
-  history, so a teammate's concurrent push fails the lease instead of
-  being overwritten.
+- The push carries `--force-with-lease=<branch>:<sha pinned at sync>`
+  (empty = branch must not exist yet). If anyone pushed to the branch
+  at any point the run didn't incorporate — even before the run's own
+  fetch — git refuses and flawless reports that nothing was
+  overwritten.
 - Afterwards, your local branch is fast-forwarded only if it's checked
   out on a clean tree and the move is a pure fast-forward; otherwise
   flawless prints the `git pull --rebase` to run.

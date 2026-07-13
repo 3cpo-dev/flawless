@@ -17,6 +17,15 @@ func stepSync(c *Context) (string, string, error) {
 	if err := gitx.Fetch(c.Worktree, c.Remote); err != nil {
 		return "", "", err
 	}
+	// Pin the remote branch's current position. It must already be part
+	// of our local work — otherwise pushing would discard those commits.
+	if sha, err := gitx.Git(c.Worktree, "rev-parse", "--verify", c.Remote+"/"+c.Branch); err == nil {
+		c.BaseRemoteSHA = sha
+		if !gitx.IsAncestor(c.Worktree, sha, "HEAD") {
+			return "", "", fmt.Errorf("%s/%s has commits your local branch does not include; run: git pull --rebase %s %s, then re-run flawless",
+				c.Remote, c.Branch, c.Remote, c.Branch)
+		}
+	}
 	if _, err := gitx.Git(c.Worktree, "rev-parse", "--verify", c.Upstream()); err != nil {
 		return "skipped", c.Upstream() + " does not exist yet", nil
 	}
@@ -196,16 +205,20 @@ func stepPush(c *Context) (string, string, error) {
 		return "", "", err
 	}
 	c.Run.FinalSHA = sha
-	remoteRef := c.Remote + "/" + c.Branch
-	if cur, err := gitx.Git(c.Worktree, "rev-parse", "--verify", remoteRef); err == nil && cur == sha {
+	expected := c.BaseRemoteSHA
+	if expected == "" {
+		// sync was skipped; fall back to the remote-tracking ref.
+		if cur, err := gitx.Git(c.Worktree, "rev-parse", "--verify", c.Remote+"/"+c.Branch); err == nil {
+			expected = cur
+		}
+	}
+	if expected == sha {
 		return "skipped", "remote already at " + sha[:10], nil
 	}
-	// force-with-lease is only needed when the rebase rewrote history.
-	lease := false
-	if _, err := gitx.Git(c.Worktree, "rev-parse", "--verify", remoteRef); err == nil {
-		lease = !gitx.IsAncestor(c.Worktree, remoteRef, sha)
-	}
-	if err := gitx.Push(c.Worktree, c.Remote, c.Branch, sha, lease); err != nil {
+	if err := gitx.Push(c.Worktree, c.Remote, c.Branch, sha, expected); err != nil {
+		if strings.Contains(err.Error(), "stale info") || strings.Contains(err.Error(), "force-with-lease") || strings.Contains(err.Error(), "rejected") {
+			return "", "", fmt.Errorf("the remote branch moved during the run — nothing was overwritten; fetch, rebase and re-run flawless (%v)", err)
+		}
 		return "", "", err
 	}
 	syncLocalBranch(c, sha)

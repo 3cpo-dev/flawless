@@ -11,6 +11,13 @@ flawless reads exactly three environment variables:
 | `HOME` | locates the global config, `~/.config/flawless/config.yaml` |
 | `TMPDIR` | where disposable worktrees are created (`$TMPDIR/flawless-<run-id>`) |
 
+Two more exist for the [guard hook](/flawless/concepts/gate-model/#enforcement-voluntary-by-default-structural-on-request):
+
+| Variable | Effect |
+| --- | --- |
+| `FLAWLESS_BYPASS=1` | lets one `git push` through an installed `flawless guard` hook — the deliberate, greppable escape hatch |
+| `FLAWLESS_INTERNAL=1` | set by flawless on its own pushes so they pass the guard. Not intended to be set by hand |
+
 One variable is set *by* flawless, for itself:
 
 | Variable | Effect |

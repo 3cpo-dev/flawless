@@ -93,7 +93,8 @@ func TestPushAndAncestry(t *testing.T) {
 		t.Fatal(err)
 	}
 	sha, _ := HeadSHA(work)
-	if err := Push(work, "origin", "feature", sha, false); err != nil {
+	// New branch: expected "" means the ref must not exist yet.
+	if err := Push(work, "origin", "feature", sha, ""); err != nil {
 		t.Fatal(err)
 	}
 	got, err := Git(bare, "rev-parse", "feature")
@@ -140,5 +141,57 @@ func TestRebaseConflict(t *testing.T) {
 	// The abort must leave the tree usable.
 	if out, err := Git(work, "status", "--porcelain"); err != nil || out != "" {
 		t.Errorf("tree not clean after aborted rebase: %q %v", out, err)
+	}
+}
+
+func TestPushLeaseRefusesUnseenRemoteCommits(t *testing.T) {
+	work, bare := newRepo(t)
+	if _, err := Git(work, "checkout", "-b", "feature"); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(work, "f.txt"), []byte("v1\n"), 0o644)
+	if _, err := CommitAll(work, "v1"); err != nil {
+		t.Fatal(err)
+	}
+	sha1, _ := HeadSHA(work)
+	if err := Push(work, "origin", "feature", sha1, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	// A teammate pushes on top of feature from their own clone.
+	mate := t.TempDir()
+	if _, err := Git(mate, "clone", "--quiet", bare, "."); err != nil {
+		t.Fatal(err)
+	}
+	Git(mate, "config", "user.email", "m@m")
+	Git(mate, "config", "user.name", "m")
+	if _, err := Git(mate, "checkout", "feature"); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(mate, "mate.txt"), []byte("their work\n"), 0o644)
+	if _, err := CommitAll(mate, "teammate work"); err != nil {
+		t.Fatal(err)
+	}
+	mateSHA, _ := HeadSHA(mate)
+	if _, err := Git(mate, "push", "origin", "feature"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Our push still expects sha1 — even after fetching (which makes the
+	// teammate's commit visible locally), the lease must refuse.
+	if err := Fetch(work, "origin"); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(work, "f.txt"), []byte("v2\n"), 0o644)
+	if _, err := CommitAll(work, "v2"); err != nil {
+		t.Fatal(err)
+	}
+	sha2, _ := HeadSHA(work)
+	if err := Push(work, "origin", "feature", sha2, sha1); err == nil {
+		t.Fatal("push must be refused: the remote moved past the expected SHA")
+	}
+	got, _ := Git(bare, "rev-parse", "feature")
+	if got != mateSHA {
+		t.Fatalf("teammate's commit was lost: bare at %s, want %s", got, mateSHA)
 	}
 }

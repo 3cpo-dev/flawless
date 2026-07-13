@@ -17,6 +17,8 @@ Usage:
   flawless [flags]          validate the current branch, push it and open a PR
   flawless init             write a commented .flawless.yaml (optional; flawless
                             works with zero config)
+  flawless guard on|off     make the gate mandatory: a pre-push hook refuses
+                            direct 'git push' to the gated remote
   flawless status           show the latest run (or --all for history)
   flawless logs [-f]        show the latest run's log
   flawless doctor           check git, agent, gh and repo prerequisites
@@ -49,6 +51,8 @@ func main() {
 		err = cmdRun(args)
 	case "init":
 		err = cmdInit()
+	case "guard":
+		err = cmdGuard(args)
 	case "status", "runs":
 		err = cmdStatus(cmd == "runs", args)
 	case "logs":
