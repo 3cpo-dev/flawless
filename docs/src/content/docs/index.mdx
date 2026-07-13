@@ -1,0 +1,41 @@
+---
+title: flawless
+description: A pre-push quality gate in one binary. Agent review, tests, lint, push, PR — no daemon, no setup, no ceremony.
+template: splash
+hero:
+  tagline: Ship branches through a quality gate, without the ceremony. One binary validates your branch in an isolated worktree — agent review, tests, lint — then pushes it and opens the PR.
+  actions:
+    - text: Quick Start
+      link: /flawless/start-here/quick-start/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/3cpo-dev/flawless
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<CardGrid stagger>
+  <Card title="Zero setup" icon="rocket">
+    No daemon, no hooks, no gate repository, no init wizard. Install one
+    binary, `cd` into any repo, type `flawless`. Configuration exists, but
+    you don't need any of it to start.
+  </Card>
+  <Card title="Your work stays untouched" icon="approve-check">
+    Every run happens in a disposable `git worktree`. Your checkout, your
+    branch and your uncommitted changes are never modified — the only thing
+    that leaves your machine is a validated branch.
+  </Card>
+  <Card title="Agent-reviewed, human-ruled" icon="magnifier">
+    Your coding agent (Claude Code, Codex, or any CLI) reviews the diff,
+    fixes what's mechanical, and stops for you when judgment is needed.
+    Nothing blocking ships without your explicit say-so.
+  </Card>
+  <Card title="Honest engineering" icon="seti:go">
+    A single static Go binary with zero runtime dependencies and zero
+    telemetry. State is plain JSON files inside `.git` — read them with
+    `cat` if you like.
+  </Card>
+</CardGrid>
