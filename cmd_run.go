@@ -205,10 +205,14 @@ func spawnDetached(args []string) error {
 			kept = append(kept, a)
 		}
 	}
+	attr, err := detachAttr()
+	if err != nil {
+		return err
+	}
 	cmd := exec.Command(self, kept...)
 	cmd.Env = append(os.Environ(), "FLAWLESS_DETACHED=1")
 	cmd.Stdout, cmd.Stderr, cmd.Stdin = nil, nil, nil
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
+	cmd.SysProcAttr = attr
 	if err := cmd.Start(); err != nil {
 		return err
 	}
