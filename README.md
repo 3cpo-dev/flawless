@@ -48,6 +48,11 @@ Useful flags: `--intent "what this change should do"`, `--yes`
 -f`), `--skip review,lint`, `--json` (machine-readable events for
 coding agents).
 
+Team mode: `flawless guard on` makes the gate mandatory — a pre-push
+hook refuses direct `git push` to the gated remote, so the only way a
+branch ships is through flawless (`flawless guard off` removes it,
+`FLAWLESS_BYPASS=1 git push …` is the explicit emergency exit).
+
 Check your environment with `flawless doctor`. Optionally write a fully
 commented config with `flawless init` — most repos only ever set:
 
@@ -63,11 +68,14 @@ commands:
 ```text
 flawless
   ├─ git worktree add --detach   isolated copy; your checkout is never touched
-  ├─ sync                        fetch + rebase onto the target branch
+  ├─ sync                        fetch + rebase; fails fast if the remote branch
+  │                              has commits your local branch doesn't include
   ├─ review                      agent reviews the diff against your intent; blockers gate
   ├─ test / lint                 your commands, with a bounded agent auto-fix loop
   ├─ docs (opt-in)               agent refreshes docs the diff made stale
-  ├─ push                        the validated SHA, lease-protected
+  ├─ push                        the validated SHA; the lease is pinned to the
+  │                              remote state seen at run start, so commits the
+  │                              run didn't incorporate are never overwritten
   ├─ pr                          created/updated via gh
   └─ ci (opt-in)                 watch checks via gh
 ```
